@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>運用分類模型在使用者輪廓分析</title>
+
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <meta name="generator" content="pandoc" />
+
+
+
+  <meta name="date" content="2016-05-11" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <link rel="stylesheet" media="all" href="2016_Bayes_Report_files/ioslides-13.5.1/fonts/fonts.css">
+
+  <link rel="stylesheet" media="all" href="2016_Bayes_Report_files/ioslides-13.5.1/theme/css/default.css">
+  <link rel="stylesheet" media="only screen and (max-device-width: 480px)" href="2016_Bayes_Report_files/ioslides-13.5.1/theme/css/phone.css">
+
+  <base target="_blank">
+
+  <script type="text/javascript">
+    var SLIDE_CONFIG = {
+      // Slide settings
+      settings: {
+                title: '運用分類模型在使用者輪廓分析',
+                        subtitle: 'Logistic Regression and Naive Bayes',
+                useBuilds: true,
+        usePrettify: true,
+        enableSlideAreas: true,
+        enableTouch: true,
+              },
+
+      // Author information
+      presenters: [
+            {
+        name:  '林敬昇' ,
+        company: '',
+        gplus: '',
+        twitter: '',
+        www: '',
+        github: ''
+      },
+            ]
+    };
+  </script>
+
+  <style type="text/css">
+
+    b, strong {
+      font-weight: bold;
+    }
+
+    em {
+      font-style: italic;
+    }
+
+    slides > slide {
+      -webkit-transition: all 0.4s ease-in-out;
+      -moz-transition: all 0.4s ease-in-out;
+      -o-transition: all 0.4s ease-in-out;
+      transition: all 0.4s ease-in-out;
+    }
+
+    .auto-fadein {
+      -webkit-transition: opacity 0.6s ease-in;
+      -webkit-transition-delay: 0.4s;
+      -moz-transition: opacity 0.6s ease-in 0.4s;
+      -o-transition: opacity 0.6s ease-in 0.4s;
+      transition: opacity 0.6s ease-in 0.4s;
+      opacity: 0;
+    }
+
+  </style>
+
+
+  <script src="2016_Bayes_Report_files/htmlwidgets-0.6/htmlwidgets.js"></script>
+  <script src="2016_Bayes_Report_files/jquery-1.11.1/jquery.min.js"></script>
+  <script src="2016_Bayes_Report_files/datatables-binding-0.1/datatables.js"></script>
+  <script src="2016_Bayes_Report_files/datatables-1.10.7/jquery.dataTables.min.js"></script>
+  <link href="2016_Bayes_Report_files/datatables-default-1.10.7/dataTables.extra.css" rel="stylesheet" />
+  <link href="2016_Bayes_Report_files/datatables-default-1.10.7/jquery.dataTables.min.css" rel="stylesheet" />
+  <link href="2016_Bayes_Report_files/nouislider-7.0.10/jquery.nouislider.min.css" rel="stylesheet" />
+  <script src="2016_Bayes_Report_files/nouislider-7.0.10/jquery.nouislider.min.js"></script>
+  <link href="2016_Bayes_Report_files/selectize-0.12.0/selectize.bootstrap3.css" rel="stylesheet" />
+  <script src="2016_Bayes_Report_files/selectize-0.12.0/selectize.min.js"></script>
+
+</head>
+
+<body style="opacity: 0">
+
+<slides>
+
+  <slide class="title-slide segue nobackground">
+        <!-- The content of this hgroup is replaced programmatically through the slide_config.json. -->
+    <hgroup class="auto-fadein">
+      <h1 data-config-title><!-- populated from slide_config.json --></h1>
+      <h2 data-config-subtitle><!-- populated from slide_config.json --></h2>
+      <p data-config-presenter><!-- populated from slide_config.json --></p>
+            <p style="margin-top: 6px; margin-left: -2px;">May 11, 2016</p>
+          </hgroup>
+  </slide>
+
+<slide class='segue dark nobackground'><hgroup class = 'auto-fadein'><h2>Outline</h2></hgroup><article  id="outline">
+
+</article></slide><slide class=''><hgroup><h2>Outline</h2></hgroup><article  id="outline-1">
+
+<ul>
+<li>前言</li>
+<li>研究問題</li>
+<li>資料處理</li>
+<li>EDA</li>
+<li>模型建立</li>
+<li>模型評估</li>
+<li>結論與建議</li>
+</ul>
+
+</article></slide><slide class='segue dark nobackground'><hgroup class = 'auto-fadein'><h2>前言</h2></hgroup><article >
+
+</article></slide><slide class=''><hgroup><h2>背景</h2></hgroup><article >
+
+<p>在智慧型手機的時代，App已離不開民眾的生活。<br/> App的開發勢必需要成本，熱門的App他們的收入是從哪來的呢？</p>
+
+<ul>
+<li>六成以上 App 賺不到錢</li>
+<li>「八二法則」：只有 20% 的 App 在賺錢，而且賺了 80% 的錢</li>
+<li>使用者最大：使用者反饋來設計與改良 App</li>
+</ul>
+
+<p><a href='http://coder01.com/blog/%E9%96%8B%E7%99%BC-app-%E8%83%BD%E8%B3%BA%E5%A4%9A%E5%B0%91%E9%8C%A2/' title=''>參考文章</a></p>
+
+</article></slide><slide class=''><hgroup><h2>APP主要收入來源</h2></hgroup><article  id="app">
+
+<ul>
+<li>付費App
+
+<ul>
+<li>IAP（App 內購買）</li>
+</ul></li>
+<li>免費App
+
+<ul>
+<li>買斷</li>
+<li>廣告</li>
+</ul></li>
+</ul>
+
+</article></slide><slide class=''><hgroup><h2>使用者越多越好</h2></hgroup><article >
+
+<ul>
+<li>Marketing
+
+<ul>
+<li>傳統的社群媒體行銷方式</li>
+</ul></li>
+<li><a href='http://www.inside.com.tw/2012/07/12/growth-hacker-the-requirements' title=''>Growth Hacking</a>
+
+<ul>
+<li>行銷混血兒</li>
+<li>具備行銷的基本知識與技能</li>
+<li>撰寫程式及資料分析</li>
+<li>Ex: Uber 推薦獲得免費乘車金
+
+<div align="center">
+<img src="2016_Gender_Report_Plot/growth.hack.jpg" width=300 height=250></div></li>
+</ul></li>
+</ul>
+
+</article></slide><slide class=''><hgroup><h2>廣告投放</h2></hgroup><article >
+
+<p>廣告主(Advertiser)付出成本購買App廣告版位(Banner)，換取曝光。</p>
+
+<ul>
+<li>目的：吸引目光 -&gt; 產生興趣</li>
+<li>例如：<strong>遊戲App</strong>在<strong>PhotoGrid</strong>中購買廣告版位</li>
+<li>購買方式
+
+<ul>
+<li>CPM、<strong>CPC</strong>、CPA、CPI&#8230;。<a href='http://mythzsgame.pixnet.net/blog/post/41018179-%5B%E5%90%8D%E8%A9%9E%E8%A7%A3%E9%87%8B%5Dapp%E5%BB%A3%E5%91%8A%E3%80%81%E7%B6%B2%E8%B7%AF%E5%AA%92%E9%AB%94%E5%B8%B8%E8%AA%AA%E5%88%B0%E6%89%80%E8%AC%82%E7%9A%84cpm' title=''>參考</a></li>
+<li><div align="center">
+<img src="2016_Gender_Report_Plot/ad.PNG" width=200 height=280></div></li>
+</ul></li>
+</ul>
+
+</article></slide><slide class=''><hgroup><h2>CPC</h2></hgroup><article  id="cpc">
+
+<p><strong>Cost Per Click;Cost Per Thousand Click-Through 每點擊成本</strong></p>
+
+<ul>
+<li>目前主流</li>
+<li>每點擊一次計費一次
+
+<ul>
+<li>對於廣告主：提高了作弊的難度</li>
+<li>對於媒體：<strong>沒有點擊等於白放 -&gt; 浪費廣告版位</strong></li>
+</ul></li>
+</ul>
+
+</article></slide><slide class=''><hgroup><h2>CPC</h2></hgroup><article  id="cpc-1">
+
+<p>廣告主在意的指標:</p>
+
+<ul>
+<li>流量
+
+<ul>
+<li>Impression：廣告的曝光量，多少使用者看到這個廣告。
+
+<div align="center">
+<p><img src="2016_Gender_Report_Plot/road.jpg" width=400 height=150></p></div></li>
+</ul></li>
+<li>成效
+
+<ul>
+<li>Ex: CTR(點閱率) = 點擊廣告次數(Click)/曝光人數(Impression)
+
+<div align="center">
+<p><img src="2016_Gender_Report_Plot/pitch.jpg" width=400 height=150></p></div></li>
+</ul></li>
+</ul>
+
+</article></slide><slide class=''><hgroup><h2>CPC</h2></hgroup><article  id="cpc-2">
+
+<p>對於媒體來說，提高廣告的CTR(廣告的成效)等價於提高公司的收入。<br/><br/><br/>Q: 如何提高廣告的CTR ?<br/><br/><br/>A: 把<strong>對的東西</strong>投給<strong>對的人</strong> -&gt; <strong>投其所好</strong> -&gt; 了解使用者特性(User Profiling)</p>
+
+</article></slide><slide class=''><hgroup><h2>User Profiling (類似於Customer Profiling)</h2></hgroup><article  id="user-profiling-customer-profiling">
+
+<ul>
+<li>與 Customer Segmentation 差異
+
+<ul>
+<li>Customer Segmentation : 按照某些特質(characteristics)，將具有相似特質的Customer分類在一起。定價策略。</li>
+<li>Customer Profiling : 描繪Customer的輪廓、<a href='http://www.wizxpand.com/what-is-persona/' title=''>Persona</a>創造背景敘述。了解Customer、改善滿意度。</li>
+</ul></li>
+<li><a href='https://www.quora.com/Social-CRM-What-is-the-difference-between-customer-segmentation-and-customer-profiling' title=''>參考資料-What is the difference between customer segmentation and customer profiling</a></li>
+</ul>
+
+</article></slide><slide class=''><hgroup><h2>User Profiling</h2></hgroup><article  id="user-profiling">
+
+<ul>
+<li>Geographic
+
+<ul>
+<li>國籍、地區、城市</li>
+</ul></li>
+<li>Demographic
+
+<ul>
+<li>性別、年齡、職業、教育程度</li>
+</ul></li>
+<li>Psychographic
+
+<ul>
+<li>人格特質、價值觀、生活型態</li>
+</ul></li>
+<li>Behavior
+
+<ul>
+<li>使用App的習慣</li>
+</ul></li>
+<li>參考文獻
+
+<ul>
+<li><a href='http://www.pnas.org/content/110/15/5802.full' title=''>Private traits and attributes are predictable from digital records of human behavior</a></li>
+<li><a href='http://arxiv.org/pdf/1503.07474.pdf' title=''>User Profiling Trends, Techniques and Applications</a></li>
+</ul></li>
+</ul>
+
+</article></slide><slide class=''><hgroup><h2>文獻參考</h2></hgroup><article >
+
+<p>利用Facebook的按讚資料，進行User Profiling</p>
+
+<div align="center">
+<p><img src="2016_Gender_Report_Plot/fb.lg.png" width=800 height=500></p></div>
+
+</article></slide><slide class='segue dark nobackground'><hgroup class = 'auto-fadein'><h2>研究問題</h2></hgroup><article >
+
+</article></slide><slide class=''><hgroup><h2>研究問題</h2></hgroup><article  id="-1">
+
+<p>為了提升CTR創造收益，需要先做使用者輪廓分析(User Profiling)，才能投其所好。<br/><br/>App通常不易取得全體使用者的特性(相較於社群網路Facebook等等)。<br/>在了解使用者的輪廓時，會透過部分已知的使用者去建立預測模型，使用其他面向的資料去推敲使用者的特性。<br/><br/>本研究主題從最基本的使用者特性開始：<strong>性別</strong></p>
+
+</article></slide><slide class=''><hgroup><h2>變數選取</h2></hgroup><article >
+
+<p>變數的選取對於分類預測模型非常重要，往往扮演著分類成效的好壞關鍵。<br/><br/>思考：</p>
+
+<ul>
+<li>擁有什麼樣的資料</li>
+<li>什麼資料可以轉換(Transforme)成變數(Based on User)</li>
+<li>哪些是利於判斷性別的變數？</li>
+</ul>
+
+<p><br/>礙於<em>資料隱私</em>的問題，僅提供變數的型態，無法提供變數的意義。</p>
+
+</article></slide><slide class=''><hgroup><h2>資料處理</h2></hgroup><article >
+
+<p>資料散落在不同資料庫之間。使用不同語言去撈取資料！</p>
+
+<ul>
+<li>ssh至Ubuntu Server
+
+<ul>
+<li>些許命令列(Linux Command Line)</li>
+</ul></li>
+<li>MongoDB
+
+<ul>
+<li>NoSQL、JSON</li>
+<li>Export to Ubuntu Server</li>
+</ul></li>
+<li>SparkR
+
+<ul>
+<li>資料量頗大</li>
+<li>Filter、Select -&gt; JOIN -&gt; Group by -&gt; Aggregation</li>
+<li>Export to Ubunru Server</li>
+<li>scp到自己電腦做運算</li>
+</ul></li>
+</ul>
+
+</article></slide><slide class=''><hgroup><h2>資料型態</h2></hgroup><article >
+
+<p>經過大量的資料清理、轉換、變數的挑選，最後建立模型前的資料型態為：</p>
+
+<table class = 'rmdtable'>
+<tr class="header">
+<th align="left">User</th>
+<th align="left">Behavior 1</th>
+<th align="left">Behavior 2</th>
+<th align="left">Behavior 3</th>
+<th align="left">&#8230;</th>
+<th align="left">Behavior 1000</th>
+<th align="left">Gender</th>
+</tr>
+<tr class="odd">
+<td align="left">User1</td>
+<td align="left">1</td>
+<td align="left">1</td>
+<td align="left">0</td>
+<td align="left">&#8230;</td>
+<td align="left">0</td>
+<td align="left">Female</td>
+</tr>
+<tr class="even">
+<td align="left">User2</td>
+<td align="left">1</td>
+<td align="left">0</td>
+<td align="left">1</td>
+<td align="left">&#8230;</td>
+<td align="left">1</td>
+<td align="left">Male</td>
+</tr>
+<tr class="odd">
+<td align="left">.</td>
+<td align="left">.</td>
+<td align="left">.</td>
+<td align="left">.</td>
+<td align="left">&#8230;</td>
+<td align="left">.</td>
+<td align="left">.</td>
+</tr>
+<tr class="even">
+<td align="left">User60000</td>
+<td align="left">0</td>
+<td align="left">0</td>
+<td align="left">1</td>
+<td align="left">&#8230;</td>
+<td align="left">1</td>
+<td align="left">Male</td>
+</tr>
+</table>
+
+<p><br/> 與這篇<a href='http://www.pnas.org/content/110/15/5802.full' title=''>Private traits and attributes are predictable from digital records of human behavior</a>型態相似</p>
+
+</article></slide><slide class='segue dark nobackground'><hgroup class = 'auto-fadein'><h2>EDA</h2></hgroup><article  id="eda">
+
+</article></slide><slide class=''><hgroup><h2>EDA目的</h2></hgroup><article  id="eda">
+
+<p>EDA目的為<strong>讓數字說話</strong><br/><br/>資料會說什麼話取決於<strong>你問什麼樣的問題</strong>：</p>
+
+<ul>
+<li>Uncover underlying structure and patterns</li>
+<li>Extract important variables and determine optimal factor settings</li>
+<li>Maximize insight into a data set</li>
+<li>Detect outliers and anomalies</li>
+<li>check assumptions &amp; generate hypotheses</li>
+</ul>
+
+<p><em>資料來源:DSP-EDA講義</em></p>
+
+</article></slide><slide class=''><hgroup><h2>Extract Important Variables</h2></hgroup><article  id="extract-important-variables">
+
+<p><div id="htmlwidget-1982" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1982">{"x":{"data":[["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92","93","94","95","96","97","98","99","100","101","102","103","104","105","106","107","108","109","110","111","112","113","114","115","116","117","118","119","120","121","122","123","124","125","126","127","128","129","130","131","132","133","134","135","136","137","138","139","140","141","142","143","144","145","146","147","148","149","150","151","152","153","154","155","156","157","158","159","160","161","162","163","164","165","166","167","168","169","170","171","172","173","174","175","176","177","178","179","180","181","182","183","184","185","186","187","188","189","190","191","192","193","194","195","196","197","198","199","200","201","202","203","204","205","206","207","208","209","210","211","212","213","214","215","216","217","218","219","220","221","222","223","224","225","226","227","228","229","230","231","232","233","234","235","236","237","238","239","240","241","242","243","244","245","246","247","248","249","250","251","252","253","254","255","256","257","258","259","260","261","262","263","264","265","266","267","268","269","270","271","272","273","274","275","276","277","278","279","280","281","282","283","284","285","286","287","288","289","290","291","292","293","294","295","296","297","298","299","300","301","302","303","304","305","306","307","308","309","310","311","312","313","314","315","316","317","318","319","320","321","322","323","324","325","326","327","328","329","330","331","332","333","334","335","336","337","338","339","340","341","342","343","344","345","346","347","348","349","350","351","352","353","354","355","356","357","358","359","360","361","362","363","364","365","366","367","368","369","370","371","372","373","374","375","376","377","378","379","380","381","382","383","384","385","386","387","388","389","390","391","392","393","394","395","396","397","398","399","400","401","402","403","404","405","406","407","408","409","410","411","412","413","414","415","416","417","418","419","420","421","422","423","424","425","426","427","428","429","430","431","432","433","434","435","436","437","438","439","440","441","442","443","444","445","446","447","448","449","450","451","452","453","454","455","456","457","458","459","460","461","462","463","464","465","466","467","468","469","470","471","472","473","474","475","476","477","478","479","480","481","482","483","484","485","486","487","488","489","490","491","492","493","494","495","496","497","498","499","500","501","502","503","504","505","506","507","508","509","510","511","512","513","514","515","516","517","518","519","520","521","522","523","524","525","526","527","528","529","530","531","532","533","534","535","536","537","538","539","540","541","542","543","544","545","546","547","548","549","550","551","552","553","554","555","556","557","558","559","560","561","562","563","564","565","566","567","568","569","570","571","572","573","574","575","576","577","578","579","580","581","582","583","584","585","586","587","588","589","590","591","592","593","594","595","596","597","598","599","600","601","602","603","604","605","606","607","608","609","610","611","612","613","614","615","616","617","618","619","620","621","622","623","624","625","626","627","628","629","630","631","632","633","634","635","636","637","638","639","640","641","642","643","644","645","646","647","648","649","650","651","652","653","654","655","656","657","658","659","660","661","662","663","664","665","666","667","668","669","670","671","672","673","674","675","676","677","678","679","680","681","682","683","684","685","686","687","688","689","690","691","692","693","694","695","696","697","698","699","700","701","702","703","704","705","706","707","708","709","710","711","712","713","714","715","716","717","718","719","720","721","722","723","724","725","726","727","728","729","730","731","732","733","734","735","736","737","738","739","740","741","742","743","744","745","746","747","748","749","750","751","752","753","754","755","756","757","758","759","760","761","762","763","764","765","766","767","768","769","770","771","772","773","774","775","776","777","778","779","780","781","782","783","784","785","786","787","788","789","790","791","792","793","794","795","796","797","798","799","800","801","802","803","804","805","806","807","808","809","810","811","812","813","814","815","816","817","818","819","820","821","822","823","824","825","826","827","828","829","830","831","832","833","834","835","836","837","838","839","840","841","842","843","844","845","846","847","848","849","850","851","852","853","854","855","856","857","858","859","860","861","862","863","864","865","866","867","868","869","870","871","872","873","874","875","876","877","878","879","880","881","882","883","884","885","886","887","888","889","890","891","892","893","894","895","896","897","898","899","900","901","902","903","904","905","906","907","908","909","910","911","912","913","914","915","916","917","918","919","920","921","922","923","924","925","926","927","928","929","930","931","932","933","934","935","936","937","938","939","940","941","942","943","944","945","946","947","948","949","950","951","952","953","954","955","956","957","958","959","960","961","962","963","964","965","966","967","968","969","970","971","972","973","974","975","976","977","978","979","980","981","982","983","984","985","986","987","988","989","990","991","992","993","994","995","996","997","998","999","1000"],["Behavior1","Behavior2","Behavior3","Behavior4","Behavior5","Behavior6","Behavior7","Behavior8","Behavior9","Behavior10","Behavior11","Behavior12","Behavior13","Behavior14","Behavior15","Behavior16","Behavior17","Behavior18","Behavior19","Behavior20","Behavior21","Behavior22","Behavior23","Behavior24","Behavior25","Behavior26","Behavior27","Behavior28","Behavior29","Behavior30","Behavior31","Behavior32","Behavior33","Behavior34","Behavior35","Behavior36","Behavior37","Behavior38","Behavior39","Behavior40","Behavior41","Behavior42","Behavior43","Behavior44","Behavior45","Behavior46","Behavior47","Behavior48","Behavior49","Behavior50","Behavior51","Behavior52","Behavior53","Behavior54","Behavior55","Behavior56","Behavior57","Behavior58","Behavior59","Behavior60","Behavior61","Behavior62","Behavior63","Behavior64","Behavior65","Behavior66","Behavior67","Behavior68","Behavior69","Behavior70","Behavior71","Behavior72","Behavior73","Behavior74","Behavior75","Behavior76","Behavior77","Behavior78","Behavior79","Behavior80","Behavior81","Behavior82","Behavior83","Behavior84","Behavior85","Behavior86","Behavior87","Behavior88","Behavior89","Behavior90","Behavior91","Behavior92","Behavior93","Behavior94","Behavior95","Behavior96","Behavior97","Behavior98","Behavior99","Behavior100","Behavior101","Behavior102","Behavior103","Behavior104","Behavior105","Behavior106","Behavior107","Behavior108","Behavior109","Behavior110","Behavior111","Behavior112","Behavior113","Behavior114","Behavior115","Behavior116","Behavior117","Behavior118","Behavior119","Behavior120","Behavior121","Behavior122","Behavior123","Behavior124","Behavior125","Behavior126","Behavior127","Behavior128","Behavior129","Behavior130","Behavior131","Behavior132","Behavior133","Behavior134","Behavior135","Behavior136","Behavior137","Behavior138","Behavior139","Behavior140","Behavior141","Behavior142","Behavior143","Behavior144","Behavior145","Behavior146","Behavior147","Behavior148","Behavior149","Behavior150","Behavior151","Behavior152","Behavior153","Behavior154","Behavior155","Behavior156","Behavior157","Behavior158","Behavior159","Behavior160","Behavior161","Behavior162","Behavior163","Behavior164","Behavior165","Behavior166","Behavior167","Behavior168","Behavior169","Behavior170","Behavior171","Behavior172","Behavior173","Behavior174","Behavior175","Behavior176","Behavior177","Behavior178","Behavior179","Behavior180","Behavior181","Behavior182","Behavior183","Behavior184","Behavior185","Behavior186","Behavior187","Behavior188","Behavior189","Behavior190","Behavior191","Behavior192","Behavior193","Behavior194","Behavior195","Behavior196","Behavior197","Behavior198","Behavior199","Behavior200","Behavior201","Behavior202","Behavior203","Behavior204","Behavior205","Behavior206","Behavior207","Behavior208","Behavior209","Behavior210","Behavior211","Behavior212","Behavior213","Behavior214","Behavior215","Behavior216","Behavior217","Behavior218","Behavior219","Behavior220","Behavior221","Behavior222","Behavior223","Behavior224","Behavior225","Behavior226","Behavior227","Behavior228","Behavior229","Behavior230","Behavior231","Behavior232","Behavior233","Behavior234","Behavior235","Behavior236","Behavior237","Behavior238","Behavior239","Behavior240","Behavior241","Behavior242","Behavior243","Behavior244","Behavior245","Behavior246","Behavior247","Behavior248","Behavior249","Behavior250","Behavior251","Behavior252","Behavior253","Behavior254","Behavior255","Behavior256","Behavior257","Behavior258","Behavior259","Behavior260","Behavior261","Behavior262","Behavior263","Behavior264","Behavior265","Behavior266","Behavior267","Behavior268","Behavior269","Behavior270","Behavior271","Behavior272","Behavior273","Behavior274","Behavior275","Behavior276","Behavior277","Behavior278","Behavior279","Behavior280","Behavior281","Behavior282","Behavior283","Behavior284","Behavior285","Behavior286","Behavior287","Behavior288","Behavior289","Behavior290","Behavior291","Behavior292","Behavior293","Behavior294","Behavior295","Behavior296","Behavior297","Behavior298","Behavior299","Behavior300","Behavior301","Behavior302","Behavior303","Behavior304","Behavior305","Behavior306","Behavior307","Behavior308","Behavior309","Behavior310","Behavior311","Behavior312","Behavior313","Behavior314","Behavior315","Behavior316","Behavior317","Behavior318","Behavior319","Behavior320","Behavior321","Behavior322","Behavior323","Behavior324","Behavior325","Behavior326","Behavior327","Behavior328","Behavior329","Behavior330","Behavior331","Behavior332","Behavior333","Behavior334","Behavior335","Behavior336","Behavior337","Behavior338","Behavior339","Behavior340","Behavior341","Behavior342","Behavior343","Behavior344","Behavior345","Behavior346","Behavior347","Behavior348","Behavior349","Behavior350","Behavior351","Behavior352","Behavior353","Behavior354","Behavior355","Behavior356","Behavior357","Behavior358","Behavior359","Behavior360","Behavior361","Behavior362","Behavior363","Behavior364","Behavior365","Behavior366","Behavior367","Behavior368","Behavior369","Behavior370","Behavior371","Behavior372","Behavior373","Behavior374","Behavior375","Behavior376","Behavior377","Behavior378","Behavior379","Behavior380","Behavior381","Behavior382","Behavior383","Behavior384","Behavior385","Behavior386","Behavior387","Behavior388","Behavior389","Behavior390","Behavior391","Behavior392","Behavior393","Behavior394","Behavior395","Behavior396","Behavior397","Behavior398","Behavior399","Behavior400","Behavior401","Behavior402","Behavior403","Behavior404","Behavior405","Behavior406","Behavior407","Behavior408","Behavior409","Behavior410","Behavior411","Behavior412","Behavior413","Behavior414","Behavior415","Behavior416","Behavior417","Behavior418","Behavior419","Behavior420","Behavior421","Behavior422","Behavior423","Behavior424","Behavior425","Behavior426","Behavior427","Behavior428","Behavior429","Behavior430","Behavior431","Behavior432","Behavior433","Behavior434","Behavior435","Behavior436","Behavior437","Behavior438","Behavior439","Behavior440","Behavior441","Behavior442","Behavior443","Behavior444","Behavior445","Behavior446","Behavior447","Behavior448","Behavior449","Behavior450","Behavior451","Behavior452","Behavior453","Behavior454","Behavior455","Behavior456","Behavior457","Behavior458","Behavior459","Behavior460","Behavior461","Behavior462","Behavior463","Behavior464","Behavior465","Behavior466","Behavior467","Behavior468","Behavior469","Behavior470","Behavior471","Behavior472","Behavior473","Behavior474","Behavior475","Behavior476","Behavior477","Behavior478","Behavior479","Behavior480","Behavior481","Behavior482","Behavior483","Behavior484","Behavior485","Behavior486","Behavior487","Behavior488","Behavior489","Behavior490","Behavior491","Behavior492","Behavior493","Behavior494","Behavior495","Behavior496","Behavior497","Behavior498","Behavior499","Behavior500","Behavior501","Behavior502","Behavior503","Behavior504","Behavior505","Behavior506","Behavior507","Behavior508","Behavior509","Behavior510","Behavior511","Behavior512","Behavior513","Behavior514","Behavior515","Behavior516","Behavior517","Behavior518","Behavior519","Behavior520","Behavior521","Behavior522","Behavior523","Behavior524","Behavior525","Behavior526","Behavior527","Behavior528","Behavior529","Behavior530","Behavior531","Behavior532","Behavior533","Behavior534","Behavior535","Behavior536","Behavior537","Behavior538","Behavior539","Behavior540","Behavior541","Behavior542","Behavior543","Behavior544","Behavior545","Behavior546","Behavior547","Behavior548","Behavior549","Behavior550","Behavior551","Behavior552","Behavior553","Behavior554","Behavior555","Behavior556","Behavior557","Behavior558","Behavior559","Behavior560","Behavior561","Behavior562","Behavior563","Behavior564","Behavior565","Behavior566","Behavior567","Behavior568","Behavior569","Behavior570","Behavior571","Behavior572","Behavior573","Behavior574","Behavior575","Behavior576","Behavior577","Behavior578","Behavior579","Behavior580","Behavior581","Behavior582","Behavior583","Behavior584","Behavior585","Behavior586","Behavior587","Behavior588","Behavior589","Behavior590","Behavior591","Behavior592","Behavior593","Behavior594","Behavior595","Behavior596","Behavior597","Behavior598","Behavior599","Behavior600","Behavior601","Behavior602","Behavior603","Behavior604","Behavior605","Behavior606","Behavior607","Behavior608","Behavior609","Behavior610","Behavior611","Behavior612","Behavior613","Behavior614","Behavior615","Behavior616","Behavior617","Behavior618","Behavior619","Behavior620","Behavior621","Behavior622","Behavior623","Behavior624","Behavior625","Behavior626","Behavior627","Behavior628","Behavior629","Behavior630","Behavior631","Behavior632","Behavior633","Behavior634","Behavior635","Behavior636","Behavior637","Behavior638","Behavior639","Behavior640","Behavior641","Behavior642","Behavior643","Behavior644","Behavior645","Behavior646","Behavior647","Behavior648","Behavior649","Behavior650","Behavior651","Behavior652","Behavior653","Behavior654","Behavior655","Behavior656","Behavior657","Behavior658","Behavior659","Behavior660","Behavior661","Behavior662","Behavior663","Behavior664","Behavior665","Behavior666","Behavior667","Behavior668","Behavior669","Behavior670","Behavior671","Behavior672","Behavior673","Behavior674","Behavior675","Behavior676","Behavior677","Behavior678","Behavior679","Behavior680","Behavior681","Behavior682","Behavior683","Behavior684","Behavior685","Behavior686","Behavior687","Behavior688","Behavior689","Behavior690","Behavior691","Behavior692","Behavior693","Behavior694","Behavior695","Behavior696","Behavior697","Behavior698","Behavior699","Behavior700","Behavior701","Behavior702","Behavior703","Behavior704","Behavior705","Behavior706","Behavior707","Behavior708","Behavior709","Behavior710","Behavior711","Behavior712","Behavior713","Behavior714","Behavior715","Behavior716","Behavior717","Behavior718","Behavior719","Behavior720","Behavior721","Behavior722","Behavior723","Behavior724","Behavior725","Behavior726","Behavior727","Behavior728","Behavior729","Behavior730","Behavior731","Behavior732","Behavior733","Behavior734","Behavior735","Behavior736","Behavior737","Behavior738","Behavior739","Behavior740","Behavior741","Behavior742","Behavior743","Behavior744","Behavior745","Behavior746","Behavior747","Behavior748","Behavior749","Behavior750","Behavior751","Behavior752","Behavior753","Behavior754","Behavior755","Behavior756","Behavior757","Behavior758","Behavior759","Behavior760","Behavior761","Behavior762","Behavior763","Behavior764","Behavior765","Behavior766","Behavior767","Behavior768","Behavior769","Behavior770","Behavior771","Behavior772","Behavior773","Behavior774","Behavior775","Behavior776","Behavior777","Behavior778","Behavior779","Behavior780","Behavior781","Behavior782","Behavior783","Behavior784","Behavior785","Behavior786","Behavior787","Behavior788","Behavior789","Behavior790","Behavior791","Behavior792","Behavior793","Behavior794","Behavior795","Behavior796","Behavior797","Behavior798","Behavior799","Behavior800","Behavior801","Behavior802","Behavior803","Behavior804","Behavior805","Behavior806","Behavior807","Behavior808","Behavior809","Behavior810","Behavior811","Behavior812","Behavior813","Behavior814","Behavior815","Behavior816","Behavior817","Behavior818","Behavior819","Behavior820","Behavior821","Behavior822","Behavior823","Behavior824","Behavior825","Behavior826","Behavior827","Behavior828","Behavior829","Behavior830","Behavior831","Behavior832","Behavior833","Behavior834","Behavior835","Behavior836","Behavior837","Behavior838","Behavior839","Behavior840","Behavior841","Behavior842","Behavior843","Behavior844","Behavior845","Behavior846","Behavior847","Behavior848","Behavior849","Behavior850","Behavior851","Behavior852","Behavior853","Behavior854","Behavior855","Behavior856","Behavior857","Behavior858","Behavior859","Behavior860","Behavior861","Behavior862","Behavior863","Behavior864","Behavior865","Behavior866","Behavior867","Behavior868","Behavior869","Behavior870","Behavior871","Behavior872","Behavior873","Behavior874","Behavior875","Behavior876","Behavior877","Behavior878","Behavior879","Behavior880","Behavior881","Behavior882","Behavior883","Behavior884","Behavior885","Behavior886","Behavior887","Behavior888","Behavior889","Behavior890","Behavior891","Behavior892","Behavior893","Behavior894","Behavior895","Behavior896","Behavior897","Behavior898","Behavior899","Behavior900","Behavior901","Behavior902","Behavior903","Behavior904","Behavior905","Behavior906","Behavior907","Behavior908","Behavior909","Behavior910","Behavior911","Behavior912","Behavior913","Behavior914","Behavior915","Behavior916","Behavior917","Behavior918","Behavior919","Behavior920","Behavior921","Behavior922","Behavior923","Behavior924","Behavior925","Behavior926","Behavior927","Behavior928","Behavior929","Behavior930","Behavior931","Behavior932","Behavior933","Behavior934","Behavior935","Behavior936","Behavior937","Behavior938","Behavior939","Behavior940","Behavior941","Behavior942","Behavior943","Behavior944","Behavior945","Behavior946","Behavior947","Behavior948","Behavior949","Behavior950","Behavior951","Behavior952","Behavior953","Behavior954","Behavior955","Behavior956","Behavior957","Behavior958","Behavior959","Behavior960","Behavior961","Behavior962","Behavior963","Behavior964","Behavior965","Behavior966","Behavior967","Behavior968","Behavior969","Behavior970","Behavior971","Behavior972","Behavior973","Behavior974","Behavior975","Behavior976","Behavior977","Behavior978","Behavior979","Behavior980","Behavior981","Behavior982","Behavior983","Behavior984","Behavior985","Behavior986","Behavior987","Behavior988","Behavior989","Behavior990","Behavior991","Behavior992","Behavior993","Behavior994","Behavior995","Behavior996","Behavior997","Behavior998","Behavior999","Behavior1000"],[298,148,94,68,189,246,214,192,570,444,267,1381,161,161,154,31,1274,95,28,294,313,1579,155,444,340,263,457,280,477,61,199,63,452,227,769,522,129,448,289,77,64,247,171,715,152,408,126,171,113,317,105,366,296,78,485,221,165,270,311,60,128,774,691,20,55,747,458,123,300,1790,441,201,1272,831,893,654,654,667,653,312,104,155,1170,162,173,112,533,340,2120,394,1596,405,173,758,828,408,336,376,284,1234,325,284,2843,70,155,2510,139,65,160,435,10642,3947,616,273,592,4325,393,656,791,349,1570,1040,183,191,510,2177,4581,2109,478,190,150,224,303,750,699,750,646,666,408,478,1464,301,875,231,3134,217,140,86,430,736,28,768,264,317,233,213,958,340,67,235,680,120,198,1327,76,663,67,718,58,125,179,1329,610,120,379,20256,1466,21986,898,130,27,151,327,1294,2432,429,303,65,99,703,585,482,413,90,80,262,119,177,187,167,56,238,140,745,729,255,1159,72,645,130,88,90,967,203,1140,546,1800,1705,1116,44,314,84,1845,67,796,531,161,3266,1224,5141,576,232,232,505,136,62,379,298,237,367,362,51,36,365,533,227,230,1582,209,119,2186,256,338,481,325,654,21,418,395,299,328,849,674,1432,440,104,260,1617,252,820,333,431,1613,106,3399,381,5930,106,4900,123,1165,1182,516,230,466,387,154,115,78,82,1087,177,1776,80,944,555,202,1052,192,321,67,120,382,7796,304,1053,2435,182,24,254,7260,227,94,491,136,91,793,316,195,333,783,645,298,275,444,2118,694,275,1295,325,35,150,160,520,96,969,5178,2471,645,249,624,184,72,178,72,4599,1978,300,58,261,861,1007,365,328,206,294,1122,267,202,94,124,609,242,70,417,149,171,315,231,96,306,187,296,110,126,89,169,515,4671,189,397,2962,900,1689,116,720,1297,675,620,449,442,160,2659,256,593,457,99,256,109,186,190,498,118,1467,1182,117,94,1839,236,54,126,666,100,623,123,599,797,111,226,158,332,188,247,562,688,148,168,1520,1426,3226,544,2706,841,130,76,257,48,271,150,44,54,284,140,374,160,221,771,310,108,89,78,303,287,110,82,290,91,237,177,261,3476,277,2208,442,1166,1159,1156,44,731,520,5311,642,290,28,70,857,36,247,126,1145,489,31,71,212,90,71,118,202,198,51,2106,416,551,600,138,347,990,857,370,106,121,270,110,196,50,556,94,1412,200,467,560,503,560,504,1009,122,29,299,57,362,613,90,97,253,563,274,640,134,544,89,311,149,213,257,2102,4322,183,2272,291,109,670,230,2257,254,650,360,765,1111,486,282,39,1677,217,221,139,389,221,380,154,97,263,5004,168,245,862,104,2469,145,48,170,2784,2467,314,283,216,119,116,237,967,947,1345,434,889,782,823,782,774,891,816,794,825,773,825,774,790,825,825,825,817,822,824,775,825,823,825,824,823,891,824,823,775,775,823,774,825,825,775,823,825,790,825,781,825,823,825,823,774,774,823,793,815,774,824,825,825,816,816,825,823,774,892,776,825,774,822,451,391,424,390,451,421,402,424,424,397,424,423,423,421,423,424,423,423,424,424,424,451,423,423,388,424,424,424,388,424,424,397,424,389,424,424,424,424,388,423,403,420,424,424,423,421,421,424,424,388,452,424,422,820,397,156,1219,2074,134,191,3125,100,276,982,214,192,173,145,64,1597,6659,126,273,1104,717,128,300,256,104,1758,137,133,76,67,2095,333,1340,94,107,3398,70,957,2446,978,1202,3717,345,97,153,169,1059,31,1638,274,1148,1292,70,71,349,303,3588,52,378,459,1595,2639,853,604,145,250,6212,212,198,1256,208,1474,89,216,1426,182,582,2117,399,215,89,286,76,155,304,684,1217,570,91,414,99,250,863,186,1239,162,250,346,859,233,2622,2422,3258,1208,170,1347,135,307,369,162,1003,24,83,227,851,127,311,1283,1365,2182,229,5151,1021,618,503,839,577,383,204,391,138,186,717,1387,124,162,626,957,181,507,87,342,71,205,497,231,123,478,28785,188,86,219,761,1034,2046,530,382,324,197,2969,154,159,793,180,203,178,148,213,28422,108,6250,145,380,65,406,1091,2554,324,137,112,38,361,529,148,883,1125,303,605,4284,384,110,1111,224,101,140,128,293,1205,760,303,2859,317,1774,2138,176,1364,729,603,870,805,221,205,368,94,692,3104,373,132,547,172,106,304,349,480,72,227,120,255,333,661,556,138,111,72,433,267,163,71,388,105,149,240,281,587,241,185,87,21,276,155,156,145,133,486,663,144,180,101,861,176,137,371,318,144,300,138,539,211,91,541,420,110,117,330,258,169,292,406,128,367,396,204,399,1628,72,737,252,333,72,748,534,2837,502,757,227,36,128,193,2682,3879,197],[381,169,123,107,281,123,222,243,135,275,174,1657,181,248,296,447,1326,755,377,396,913,2430,222,506,603,274,11,399,747,242,190,247,626,345,798,798,174,713,307,153,296,248,119,973,233,204,317,247,255,218,171,522,234,147,705,233,268,233,382,309,233,1009,2035,246,551,603,491,91,302,2157,585,275,1498,826,877,718,705,736,724,393,133,324,1052,145,163,74,453,219,857,130,474,135,153,801,71,27,43,21,347,1428,256,249,3794,134,337,3109,149,160,137,591,10564,4214,673,514,685,3147,129,346,1209,465,1289,1427,209,281,85,637,4819,2552,230,76,155,188,357,871,1152,1155,795,725,842,115,2322,298,846,273,4076,192,267,245,552,808,163,911,709,171,524,242,415,74,203,336,746,194,110,2310,162,772,124,1065,111,159,200,1274,526,141,314,21195,1340,22254,791,314,291,281,430,1502,2624,912,165,152,176,1077,464,1217,561,89,339,194,231,890,734,955,173,114,274,1657,652,371,1359,400,752,101,275,322,1272,439,1962,799,2889,2664,2005,165,500,307,2696,159,1066,884,303,3638,1571,5731,1037,346,342,787,206,196,573,276,312,537,626,199,234,334,778,338,344,2808,282,313,3676,405,524,579,493,969,180,1412,944,266,934,294,989,525,202,444,283,1111,319,821,343,1046,1247,174,2946,520,6570,158,5674,239,2493,2546,945,923,233,345,85,197,192,117,1087,182,2049,259,2648,1388,137,600,125,368,92,165,655,6684,128,737,556,509,104,360,8126,572,154,340,88,985,201,726,256,394,760,141,607,103,54,685,281,189,578,417,237,150,311,356,739,393,2826,1098,175,60,1192,163,321,459,316,5447,2498,145,293,882,1129,824,545,392,284,52,624,90,443,140,545,591,448,81,653,185,354,529,461,115,545,354,481,110,183,135,351,450,1779,226,199,1187,652,1570,326,228,348,770,213,368,446,110,1164,390,561,361,341,185,95,227,352,808,219,786,588,126,234,1831,965,416,655,2057,639,803,97,825,1082,88,241,110,269,420,208,564,400,208,143,235,457,908,127,545,1244,186,120,503,148,536,304,180,176,481,342,658,451,239,610,371,147,137,142,484,444,116,161,185,910,535,69,234,4126,451,701,161,892,892,898,275,833,82,2178,1168,300,186,361,2636,200,295,167,592,133,500,83,204,243,277,652,194,193,347,3218,951,345,980,335,3,45,38,340,282,158,369,127,274,168,574,146,1467,215,422,496,452,498,453,1582,219,184,110,129,533,162,113,369,139,79,185,256,294,622,668,129,77,411,814,581,311,186,1322,137,111,241,127,1941,213,378,143,856,1650,631,725,134,550,206,784,198,106,68,587,88,713,181,2316,170,445,1462,220,3051,87,121,215,3527,2044,241,211,180,118,103,227,827,716,1054,317,110,97,106,97,95,110,103,100,106,95,105,95,99,106,106,106,103,106,106,95,106,106,106,106,106,111,106,106,95,95,105,95,106,106,95,106,106,99,106,97,106,106,106,106,95,95,106,100,103,95,106,106,106,103,103,106,106,95,110,95,106,95,106,306,258,297,258,307,289,271,297,296,267,296,296,296,287,296,296,296,294,296,296,296,306,296,294,250,296,296,296,250,296,296,267,296,257,296,296,295,296,250,295,270,288,296,296,296,288,287,296,296,250,306,296,295,1030,383,192,1391,2564,101,165,1205,160,364,743,188,266,167,46,266,2089,7142,172,201,1067,499,114,199,380,207,1392,266,123,251,356,2596,395,1634,154,158,4141,110,1288,2780,1310,1568,4307,367,126,158,290,1127,172,2091,443,3027,896,119,114,1426,116,4139,142,472,394,1822,2967,755,449,820,378,8336,353,275,322,162,1165,241,109,1772,452,1240,2581,457,330,129,484,809,228,741,814,1438,799,275,429,253,160,429,525,1078,195,84,320,934,239,3000,2802,1825,311,152,1700,178,351,284,293,1057,186,172,601,397,179,145,1221,857,700,536,4068,1440,452,819,931,501,240,104,264,211,290,653,1385,169,236,190,874,122,488,257,494,130,168,385,198,223,693,30310,205,493,150,1167,947,2104,521,334,248,151,2300,109,66,526,479,133,114,123,211,29663,154,3365,91,110,138,113,564,2029,376,93,88,363,328,534,302,1232,1544,246,313,3862,345,232,1342,145,223,173,397,647,2053,147,183,2380,507,2285,2761,267,1485,291,275,1086,890,173,225,478,141,513,1916,290,1091,756,167,245,582,254,449,111,170,94,691,397,655,382,178,277,174,1980,446,612,224,332,121,309,521,268,693,183,464,163,262,223,163,1057,169,204,822,680,228,130,170,643,154,163,80,267,1465,186,184,222,383,150,478,395,227,427,18,563,303,417,347,118,566,461,241,135,822,530,2209,173,591,164,970,194,3372,304,680,194,135,324,163,1126,1707,392],[0.438880706921944,0.466876971608833,0.433179723502304,0.388571428571429,0.402127659574468,0.666666666666667,0.490825688073394,0.441379310344828,0.808510638297872,0.617524339360223,0.605442176870748,0.454575378538512,0.470760233918129,0.393643031784841,0.342222222222222,0.0648535564853557,0.49,0.111764705882353,0.0691358024691358,0.426086956521739,0.255301794453507,0.39386380643552,0.411140583554377,0.467368421052632,0.360551431601273,0.48975791433892,0.976495726495726,0.412371134020619,0.389705882352941,0.201320132013201,0.511568123393316,0.203225806451613,0.419294990723562,0.396853146853147,0.490746649649011,0.395454545454545,0.425742574257426,0.385874246339363,0.48489932885906,0.334782608695652,0.177777777777778,0.498989898989899,0.589655172413793,0.423578199052133,0.394805194805195,0.666666666666667,0.284424379232506,0.409090909090909,0.307065217391304,0.592523364485981,0.380434782608696,0.412162162162162,0.558490566037736,0.346666666666667,0.407563025210084,0.486784140969163,0.381062355658199,0.536779324055666,0.448773448773449,0.16260162601626,0.354570637119114,0.434099831744251,0.253484959647836,0.075187969924812,0.0907590759075908,0.553333333333333,0.482613277133825,0.574766355140187,0.498338870431894,0.453508994172789,0.429824561403509,0.422268907563025,0.459205776173285,0.501508750754375,0.504519774011299,0.47667638483965,0.481236203090508,0.475409836065574,0.474219317356572,0.442553191489362,0.438818565400844,0.323590814196242,0.526552655265527,0.527687296416938,0.514880952380952,0.602150537634409,0.540567951318458,0.608228980322004,0.712126301645952,0.751908396946565,0.771014492753623,0.75,0.530674846625767,0.486209108402822,0.921023359288098,0.937931034482759,0.886543535620053,0.947103274559194,0.450079239302694,0.463561232156273,0.559380378657487,0.532833020637899,0.428356185023354,0.343137254901961,0.315040650406504,0.446698700836448,0.482638888888889,0.288888888888889,0.538720538720539,0.423976608187135,0.501839102140904,0.483641710574684,0.47788983708301,0.346886912325286,0.463586530931872,0.578827623126338,0.752873563218391,0.654690618762475,0.3955,0.428746928746929,0.549143057012942,0.421564653425213,0.466836734693878,0.404661016949153,0.857142857142857,0.77363184079602,0.487340425531915,0.452478009010942,0.675141242937853,0.714285714285714,0.491803278688525,0.543689320388349,0.459090909090909,0.462677359654534,0.377633711507293,0.393700787401575,0.448299791811242,0.478792235801582,0.3264,0.806070826306914,0.386687797147385,0.502504173622704,0.508425334108077,0.458333333333333,0.434674063800277,0.530562347188264,0.343980343980344,0.259818731117825,0.437881873727088,0.476683937823834,0.146596858638743,0.457415128052412,0.271325796505653,0.649590163934426,0.30779392338177,0.468131868131868,0.697742170429716,0.821256038647343,0.248148148148148,0.411558669001751,0.476858345021038,0.382165605095541,0.642857142857143,0.364861149298873,0.319327731092437,0.462020905923345,0.350785340314136,0.402692091979809,0.343195266272189,0.440140845070423,0.472295514511873,0.510564733000384,0.536971830985915,0.459770114942529,0.546897546897547,0.488673373380618,0.522451888809694,0.496971066907776,0.531675547661338,0.292792792792793,0.0849056603773585,0.349537037037037,0.431968295904888,0.462804005722461,0.481012658227848,0.319910514541387,0.647435897435897,0.299539170506912,0.36,0.394943820224719,0.55767397521449,0.283696291936433,0.424024640657084,0.502793296089385,0.190930787589499,0.574561403508772,0.34,0.165885660731022,0.203040173724213,0.148841354723708,0.244541484716157,0.676136363636364,0.338164251207729,0.310158201498751,0.527878349022447,0.407348242811502,0.460285941223193,0.152542372881356,0.461703650680029,0.562770562770563,0.242424242424242,0.218446601941748,0.43188923626619,0.31619937694704,0.367504835589942,0.405947955390335,0.383877159309021,0.390249485008011,0.357577699455303,0.210526315789474,0.385749385749386,0.214833759590793,0.406298172208765,0.29646017699115,0.42749731471536,0.375265017667845,0.34698275862069,0.47305909617613,0.437924865831843,0.472866077998528,0.357098574085555,0.401384083044983,0.40418118466899,0.390866873065015,0.39766081871345,0.24031007751938,0.398109243697479,0.519163763066202,0.431693989071038,0.405973451327434,0.366396761133603,0.204,0.133333333333333,0.522174535050071,0.406559877955759,0.401769911504425,0.400696864111498,0.360364464692483,0.425661914460285,0.275462962962963,0.372910269532583,0.387291981845688,0.392111368909513,0.45377358490566,0.397310513447433,0.402957486136784,0.104477611940299,0.228415300546448,0.294996265870052,0.529203539823009,0.259904912836767,0.742782152230971,0.405291641611545,0.731732243229433,0.685358255451713,0.18978102189781,0.478821362799263,0.592741935483871,0.441330998248686,0.499695307739183,0.492603550295858,0.291807718348003,0.563986013986014,0.378571428571429,0.535697399527187,0.422863485016648,0.4744,0.401515151515151,0.463400794401362,0.339779005524862,0.318480043739748,0.31706008583691,0.353182751540041,0.199479618386817,0.666666666666667,0.528688524590164,0.644351464435146,0.368589743589744,0.288888888888889,0.412060301507538,0.5,0.493036211699164,0.464313725490196,0.23598820058997,0.262806236080178,0.285640761708698,0.595870206489675,0.63680387409201,0.605678233438486,0.46589259796807,0.421383647798742,0.421052631578947,0.368370298939248,0.538397790055249,0.703703703703704,0.588268156424581,0.814108993647609,0.263386396526773,0.1875,0.413680781758958,0.471857532822046,0.284105131414268,0.379032258064516,0.590854392298436,0.607142857142857,0.0845724907063197,0.797786720321932,0.303262955854127,0.432372505543237,0.458046767537827,0.507453013609851,0.820610687022901,0.329281767955801,0.727513227513228,0.891566265060241,0.755618979664645,0.711794871794872,0.592672413793103,0.691404164442072,0.438005390835579,0.128676470588235,0.5,0.339702760084926,0.593607305936073,0.11497005988024,0.711453744493392,0.646926536731634,0.692350798543009,0.786585365853659,0.805825242718447,0.343612334801762,0.530259365994236,0.183206106870229,0.279434850863422,0.185567010309278,0.457794146924149,0.441912421805183,0.674157303370786,0.165242165242165,0.228346456692913,0.432663316582915,0.54997269251775,0.401098901098901,0.455555555555556,0.420408163265306,0.84971098265896,0.642611683848797,0.747899159663866,0.313178294573643,0.401709401709402,0.185351270553064,0.5075,0.350724637681159,0.463576158940397,0.389719626168224,0.446107784431138,0.325714285714286,0.373222748815166,0.333815028901734,0.454976303317536,0.35957696827262,0.345656192236599,0.380952380952381,0.5,0.407766990291262,0.397321428571429,0.325,0.533678756476684,0.724186046511628,0.455421686746988,0.666107382550336,0.713906965533864,0.579896907216495,0.518257134090212,0.262443438914027,0.759493670886076,0.788449848024316,0.467128027681661,0.744297719087635,0.549571603427173,0.497747747747748,0.592592592592593,0.695527072979336,0.396284829721362,0.513864818024263,0.558679706601467,0.225,0.580498866213152,0.534313725490196,0.450363196125908,0.350553505535055,0.381316998468606,0.350148367952522,0.651131824234354,0.667796610169492,0.481481481481481,0.286585365853659,0.501089918256131,0.196502914238135,0.114893617021277,0.161331626120359,0.244583180315828,0.13531799729364,0.436886395511921,0.559090909090909,0.42064606741573,0.424161788185205,0.557788944723618,0.483940042826552,0.58955223880597,0.552412645590682,0.309210526315789,0.542857142857143,0.49911190053286,0.632352941176471,0.415730337078652,0.540192926045016,0.866096866096866,0.757302177376527,0.780358006773101,0.810730253353204,0.832359274069517,0.403357314148681,0.411392405063291,0.387755102040816,0.338157894736842,0.244897959183673,0.335811648079306,0.330396475770925,0.196428571428571,0.234782608695652,0.371241830065359,0.29045643153527,0.362403100775194,0.261865793780687,0.480434782608696,0.558291093410572,0.455212922173275,0.423529411764706,0.393805309734513,0.354545454545455,0.385006353240152,0.392612859097127,0.486725663716814,0.337448559670782,0.610526315789474,0.0909090909090909,0.30699481865285,0.719512195121951,0.527272727272727,0.457248092607209,0.380494505494505,0.759023719491234,0.733001658374793,0.566569484936832,0.565090199902487,0.562804284323272,0.137931034482759,0.467391304347826,0.863787375415282,0.709173454399786,0.354696132596685,0.491525423728814,0.130841121495327,0.162412993039443,0.245347838534211,0.152542372881356,0.455719557195572,0.430034129692833,0.659182498560737,0.786173633440514,0.0583804143126177,0.461038961038961,0.509615384615385,0.27027027027027,0.204022988505747,0.153246753246753,0.51010101010101,0.506393861892583,0.128140703517588,0.395567242674681,0.304316020482809,0.614955357142857,0.379746835443038,0.291754756871036,0.991428571428571,0.956521739130435,0.957541899441341,0.52112676056338,0.27319587628866,0.433691756272401,0.422535211267606,0.464135021097046,0.417021276595745,0.229357798165138,0.492035398230089,0.391666666666667,0.490448072247308,0.481927710843373,0.525309336332958,0.53030303030303,0.526701570680628,0.52930056710775,0.526645768025078,0.38942493245851,0.357771260997067,0.136150234741784,0.731051344743276,0.306451612903226,0.404469273743017,0.790967741935484,0.443349753694581,0.208154506437768,0.645408163265306,0.876947040498442,0.596949891067538,0.714285714285714,0.313084112149533,0.466552315608919,0.117569352708058,0.706818181818182,0.65929203539823,0.341346153846154,0.239962651727358,0.783451360417443,0.932872868551694,0.495934959349593,0.632164718976071,0.679906542056075,0.495454545454545,0.735455543358946,0.644257703081233,0.537636969985707,0.54389721627409,0.632295719844358,0.715705765407555,0.471930906847625,0.402390438247012,0.43509400179051,0.280039721946375,0.225433526011561,0.753030983385721,0.513002364066194,0.219900497512438,0.412462908011869,0.785858585858586,0.764705882352941,0.392967942088935,0.636363636363636,0.119753086419753,0.592342342342342,0.683606557377049,0.497041420118343,0.355072463768116,0.370912220309811,0.320987654320988,0.447282608695652,0.625,0.284023668639053,0.441558441558442,0.441134527016321,0.546885391265795,0.565765765765766,0.572874493927126,0.545454545454545,0.50210970464135,0.529680365296804,0.510775862068966,0.53901895206243,0.569452796151533,0.560650270946228,0.577896138482024,0.88988988988989,0.889647326507395,0.885898815931109,0.889647326507395,0.890678941311853,0.89010989010989,0.887921653971708,0.888143176733781,0.886143931256713,0.890552995391705,0.887096774193548,0.890678941311853,0.888638920134983,0.886143931256713,0.886143931256713,0.886143931256713,0.88804347826087,0.885775862068966,0.886021505376344,0.890804597701149,0.886143931256713,0.885898815931109,0.886143931256713,0.886021505376344,0.885898815931109,0.889221556886228,0.886021505376344,0.885898815931109,0.890804597701149,0.890804597701149,0.886853448275862,0.890678941311853,0.886143931256713,0.886143931256713,0.890804597701149,0.885898815931109,0.886143931256713,0.888638920134983,0.886143931256713,0.889521640091116,0.886143931256713,0.885898815931109,0.886143931256713,0.885898815931109,0.890678941311853,0.890678941311853,0.885898815931109,0.888017917133259,0.887799564270152,0.890678941311853,0.886021505376344,0.886143931256713,0.886143931256713,0.887921653971708,0.887921653971708,0.886143931256713,0.885898815931109,0.890678941311853,0.890219560878243,0.890929965556831,0.886143931256713,0.890678941311853,0.885775862068966,0.595772787318362,0.602465331278891,0.588072122052705,0.601851851851852,0.594986807387863,0.592957746478873,0.597325408618128,0.588072122052705,0.588888888888889,0.59789156626506,0.588888888888889,0.588317107093185,0.588317107093185,0.594632768361582,0.588317107093185,0.588888888888889,0.588317107093185,0.589958158995816,0.588888888888889,0.588888888888889,0.588888888888889,0.595772787318362,0.588317107093185,0.589958158995816,0.608150470219436,0.588888888888889,0.588888888888889,0.588888888888889,0.608150470219436,0.588888888888889,0.588888888888889,0.59789156626506,0.588888888888889,0.602167182662539,0.588888888888889,0.588888888888889,0.58970792767733,0.588888888888889,0.608150470219436,0.589136490250696,0.598811292719168,0.593220338983051,0.588888888888889,0.588888888888889,0.588317107093185,0.593794076163611,0.594632768361582,0.588888888888889,0.588888888888889,0.608150470219436,0.596306068601583,0.588888888888889,0.588563458856346,0.443243243243243,0.508974358974359,0.448275862068966,0.467049808429119,0.447175506683915,0.570212765957447,0.536516853932584,0.721709006928406,0.384615384615385,0.43125,0.569275362318841,0.532338308457711,0.419213973799127,0.508823529411765,0.759162303664921,0.193939393939394,0.433260987520347,0.482501268024056,0.422818791946309,0.575949367088608,0.508521418701059,0.589638157894737,0.528925619834711,0.601202404809619,0.40251572327044,0.334405144694534,0.558095238095238,0.339950372208437,0.51953125,0.232415902140673,0.15839243498818,0.446599872095502,0.457417582417582,0.450571620712845,0.379032258064516,0.40377358490566,0.45072290754742,0.388888888888889,0.426280623608018,0.468044393417528,0.427447552447552,0.433935018050542,0.463235294117647,0.484550561797753,0.434977578475336,0.491961414790997,0.368191721132898,0.484446477584629,0.152709359605911,0.439259855189059,0.382147838214784,0.27497005988024,0.590493601462523,0.37037037037037,0.383783783783784,0.196619718309859,0.723150357995227,0.464345800440016,0.268041237113402,0.444705882352941,0.53810082063306,0.46678372841674,0.470745629682483,0.53047263681592,0.573599240265907,0.150259067357513,0.398089171974522,0.427000274951883,0.375221238938053,0.418604651162791,0.795944233206591,0.562162162162162,0.55854490337249,0.26969696969697,0.664615384615385,0.445903689806129,0.287066246056782,0.319429198682766,0.450617283950617,0.466121495327103,0.394495412844037,0.408256880733945,0.371428571428571,0.0858757062146893,0.404699738903394,0.290909090909091,0.456608811748999,0.458380414312618,0.4163623082542,0.248633879781421,0.491103202846975,0.28125,0.609756097560976,0.667956656346749,0.261603375527426,0.534743202416918,0.453781512605042,0.748502994011976,0.519519519519519,0.479085331846068,0.49364406779661,0.466382070437567,0.463629402756508,0.640960062954948,0.795260039499671,0.527950310559006,0.442074171316049,0.431309904153355,0.466565349544073,0.565084226646248,0.356043956043956,0.486893203883495,0.114285714285714,0.325490196078431,0.274154589371981,0.681891025641026,0.415032679738562,0.682017543859649,0.512380191693291,0.614311431143114,0.757113115891742,0.299346405228758,0.55873739017247,0.414872003250711,0.577570093457944,0.380484114977307,0.474011299435028,0.535250463821892,0.614767255216693,0.662337662337662,0.596946564885496,0.39541547277937,0.390756302521008,0.523357664233577,0.50036075036075,0.42320819112628,0.407035175879397,0.767156862745098,0.522665210267613,0.597359735973597,0.509547738693467,0.252906976744186,0.409090909090909,0.353233830845771,0.549597855227882,0.563492063492063,0.538461538461538,0.355491329479769,0.408198121263877,0.487097047127507,0.478371501272265,0.14853195164076,0.59349593495935,0.394709543568465,0.52195860676426,0.493012048192771,0.504281636536632,0.533519553072626,0.566433566433566,0.566091954022989,0.563484532169292,0.585551330798479,0.706666666666667,0.601213040181956,0.273141122913505,0.604166666666667,0.60958904109589,0.546125461254613,0.502358490566038,0.489317379702161,0.412213740458015,0.650026001040042,0.614406779661017,0.775510204081633,0.320197044334975,0.782273603082852,0.659214501510574,0.557276892864936,0.462857142857143,0.595652173913043,0.56,0.0947630922693267,0.523947750362845,0.497648165569144,0.328888888888889,0.417494089834515,0.421506182090671,0.551912568306011,0.659041394335512,0.525902283329241,0.526748971193416,0.321637426900585,0.452914798206278,0.607046070460705,0.311728395061728,0.447284345047923,0.243809523809524,0.311702127659574,0.369858809085328,0.837927232635061,0.623456790123457,0.545714831074633,0.384708737864078,0.437053461443705,0.436415595019392,0.397291196388262,0.478764478764479,0.714705882352941,0.686788154897494,0.44478527607362,0.474926253687316,0.560913705583756,0.476744186046512,0.434988179669031,0.4,0.574273858921162,0.618326693227092,0.562594268476621,0.107931316434996,0.419800460475825,0.507374631268437,0.301994301994302,0.343115124153499,0.5787728026534,0.516684607104413,0.39344262295082,0.571788413098237,0.560747663551402,0.269556025369979,0.456164383561644,0.502279635258359,0.59275053304904,0.436708860759494,0.286082474226804,0.292682926829268,0.179444674678823,0.374474053295933,0.210322580645161,0.240677966101695,0.538888888888889,0.464601769911504,0.325327510917031,0.315374507227332,0.51183970856102,0.45859375,0.568396226415094,0.285053929121726,0.348,0.0742049469964664,0.55310621242485,0.487421383647799,0.128606760098928,0.461783439490446,0.394658753709199,0.371559633027523,0.493670886075949,0.387096774193548,0.580645161290323,0.372693726937269,0.572473404255319,0.533333333333333,0.456666666666667,0.822616407982262,0.543589743589744,0.0894965817277812,0.617283950617284,0.428571428571429,0.708278580814718,0.355218855218855,0.377593360995851,0.530912659470069,0.515337423312883,0.326409495548961,0.215073529411765,0.948275862068966,0.314250913520097,0.358050847457627,0.411847672778561,0.539176626826029,0.520325203252033,0.393354769560557,0.462077012835473,0.458426966292135,0.747191011235955,0.664489795918367,0.119601328903654,0.250169721656483,0.592941176470588,0.36038961038961,0.305084745762712,0.435389988358556,0.733516483516483,0.456917377999678,0.622828784119107,0.526791927627001,0.539192399049881,0.210526315789474,0.283185840707965,0.542134831460674,0.704306722689076,0.694414607948443,0.33446519524618],[0.561119293078056,0.533123028391167,0.566820276497696,0.611428571428571,0.597872340425532,0.333333333333333,0.509174311926605,0.558620689655172,0.191489361702128,0.382475660639777,0.394557823129252,0.545424621461488,0.529239766081871,0.606356968215159,0.657777777777778,0.935146443514644,0.51,0.888235294117647,0.930864197530864,0.573913043478261,0.744698205546493,0.60613619356448,0.588859416445623,0.532631578947368,0.639448568398727,0.51024208566108,0.0235042735042735,0.587628865979381,0.610294117647059,0.798679867986799,0.488431876606684,0.796774193548387,0.580705009276438,0.603146853146853,0.509253350350989,0.604545454545454,0.574257425742574,0.614125753660637,0.51510067114094,0.665217391304348,0.822222222222222,0.501010101010101,0.410344827586207,0.576421800947867,0.605194805194805,0.333333333333333,0.715575620767494,0.590909090909091,0.692934782608696,0.407476635514019,0.619565217391304,0.587837837837838,0.441509433962264,0.653333333333333,0.592436974789916,0.513215859030837,0.618937644341801,0.463220675944334,0.551226551226551,0.83739837398374,0.645429362880886,0.565900168255749,0.746515040352164,0.924812030075188,0.909240924092409,0.446666666666667,0.517386722866175,0.425233644859813,0.501661129568106,0.546491005827211,0.570175438596491,0.577731092436975,0.540794223826715,0.498491249245625,0.495480225988701,0.52332361516035,0.518763796909492,0.524590163934426,0.525780682643428,0.557446808510638,0.561181434599156,0.676409185803758,0.473447344734473,0.472312703583062,0.485119047619048,0.397849462365591,0.459432048681542,0.391771019677996,0.287873698354048,0.248091603053435,0.228985507246377,0.25,0.469325153374233,0.513790891597178,0.0789766407119021,0.0620689655172414,0.113456464379947,0.052896725440806,0.549920760697306,0.536438767843727,0.440619621342513,0.467166979362101,0.571643814976646,0.656862745098039,0.684959349593496,0.553301299163552,0.517361111111111,0.711111111111111,0.461279461279461,0.576023391812866,0.498160897859097,0.516358289425315,0.52211016291699,0.653113087674714,0.536413469068128,0.421172376873662,0.247126436781609,0.345309381237525,0.6045,0.571253071253071,0.450856942987058,0.578435346574787,0.533163265306122,0.595338983050847,0.142857142857143,0.22636815920398,0.512659574468085,0.547521990989058,0.324858757062147,0.285714285714286,0.508196721311475,0.456310679611651,0.540909090909091,0.537322640345466,0.622366288492707,0.606299212598425,0.551700208188758,0.521207764198418,0.6736,0.193929173693086,0.613312202852615,0.497495826377296,0.491574665891923,0.541666666666667,0.565325936199723,0.469437652811736,0.656019656019656,0.740181268882175,0.562118126272912,0.523316062176166,0.853403141361257,0.542584871947588,0.728674203494347,0.350409836065574,0.69220607661823,0.531868131868132,0.302257829570284,0.178743961352657,0.751851851851852,0.588441330998249,0.523141654978962,0.617834394904459,0.357142857142857,0.635138850701127,0.680672268907563,0.537979094076655,0.649214659685864,0.597307908020191,0.656804733727811,0.559859154929577,0.527704485488127,0.489435266999616,0.463028169014085,0.540229885057471,0.453102453102453,0.511326626619382,0.477548111190306,0.503028933092224,0.468324452338662,0.707207207207207,0.915094339622642,0.650462962962963,0.568031704095112,0.537195994277539,0.518987341772152,0.680089485458613,0.352564102564103,0.700460829493088,0.64,0.605056179775281,0.44232602478551,0.716303708063567,0.575975359342916,0.497206703910615,0.809069212410501,0.425438596491228,0.66,0.834114339268978,0.796959826275787,0.851158645276292,0.755458515283843,0.323863636363636,0.661835748792271,0.689841798501249,0.472121650977552,0.592651757188498,0.539714058776807,0.847457627118644,0.538296349319971,0.437229437229437,0.757575757575758,0.781553398058252,0.56811076373381,0.68380062305296,0.632495164410058,0.594052044609665,0.616122840690979,0.609750514991989,0.642422300544697,0.789473684210526,0.614250614250614,0.785166240409207,0.593701827791235,0.70353982300885,0.57250268528464,0.624734982332156,0.65301724137931,0.52694090382387,0.562075134168157,0.527133922001472,0.642901425914445,0.598615916955017,0.59581881533101,0.609133126934985,0.60233918128655,0.75968992248062,0.601890756302521,0.480836236933798,0.568306010928962,0.594026548672566,0.633603238866397,0.796,0.866666666666667,0.477825464949928,0.593440122044241,0.598230088495575,0.599303135888502,0.639635535307517,0.574338085539715,0.724537037037037,0.627089730467417,0.612708018154312,0.607888631090487,0.54622641509434,0.602689486552567,0.597042513863216,0.895522388059702,0.771584699453552,0.705003734129948,0.470796460176991,0.740095087163233,0.257217847769029,0.594708358388455,0.268267756770567,0.314641744548287,0.81021897810219,0.521178637200737,0.407258064516129,0.558669001751314,0.500304692260817,0.507396449704142,0.708192281651997,0.436013986013986,0.621428571428571,0.464302600472813,0.577136514983352,0.5256,0.598484848484849,0.536599205598638,0.660220994475138,0.681519956260252,0.68293991416309,0.646817248459959,0.800520381613183,0.333333333333333,0.471311475409836,0.355648535564854,0.631410256410256,0.711111111111111,0.587939698492462,0.5,0.506963788300836,0.535686274509804,0.76401179941003,0.737193763919822,0.714359238291302,0.404129793510324,0.36319612590799,0.394321766561514,0.53410740203193,0.578616352201258,0.578947368421053,0.631629701060752,0.461602209944751,0.296296296296296,0.411731843575419,0.185891006352391,0.736613603473227,0.8125,0.586319218241042,0.528142467177954,0.715894868585732,0.620967741935484,0.409145607701564,0.392857142857143,0.91542750929368,0.202213279678068,0.696737044145873,0.567627494456763,0.541953232462173,0.492546986390149,0.179389312977099,0.670718232044199,0.272486772486772,0.108433734939759,0.244381020335355,0.288205128205128,0.407327586206897,0.308595835557928,0.56199460916442,0.871323529411765,0.5,0.660297239915074,0.406392694063927,0.88502994011976,0.288546255506608,0.353073463268366,0.307649201456991,0.213414634146341,0.194174757281553,0.656387665198238,0.469740634005764,0.816793893129771,0.720565149136578,0.814432989690722,0.542205853075851,0.558087578194817,0.325842696629214,0.834757834757835,0.771653543307087,0.567336683417085,0.45002730748225,0.598901098901099,0.544444444444444,0.579591836734694,0.15028901734104,0.357388316151203,0.252100840336134,0.686821705426357,0.598290598290598,0.814648729446936,0.4925,0.649275362318841,0.536423841059603,0.610280373831776,0.553892215568862,0.674285714285714,0.626777251184834,0.666184971098266,0.545023696682464,0.64042303172738,0.654343807763401,0.619047619047619,0.5,0.592233009708738,0.602678571428571,0.675,0.466321243523316,0.275813953488372,0.544578313253012,0.333892617449664,0.286093034466136,0.420103092783505,0.481742865909788,0.737556561085973,0.240506329113924,0.211550151975684,0.532871972318339,0.255702280912365,0.450428396572827,0.502252252252252,0.407407407407407,0.304472927020664,0.603715170278638,0.486135181975737,0.441320293398533,0.775,0.419501133786848,0.465686274509804,0.549636803874092,0.649446494464945,0.618683001531394,0.649851632047478,0.348868175765646,0.332203389830508,0.518518518518518,0.713414634146341,0.498910081743869,0.803497085761865,0.885106382978723,0.838668373879641,0.755416819684172,0.86468200270636,0.563113604488079,0.440909090909091,0.57935393258427,0.575838211814795,0.442211055276382,0.516059957173448,0.41044776119403,0.447587354409318,0.690789473684211,0.457142857142857,0.50088809946714,0.367647058823529,0.584269662921348,0.459807073954984,0.133903133903134,0.242697822623473,0.219641993226899,0.189269746646796,0.167640725930483,0.596642685851319,0.588607594936709,0.612244897959184,0.661842105263158,0.755102040816326,0.664188351920694,0.669603524229075,0.803571428571429,0.765217391304348,0.628758169934641,0.70954356846473,0.637596899224806,0.738134206219313,0.519565217391304,0.441708906589428,0.544787077826725,0.576470588235294,0.606194690265487,0.645454545454546,0.614993646759847,0.607387140902873,0.513274336283186,0.662551440329218,0.389473684210526,0.909090909090909,0.69300518134715,0.280487804878049,0.472727272727273,0.542751907392791,0.619505494505495,0.240976280508766,0.266998341625207,0.433430515063168,0.434909800097513,0.437195715676728,0.862068965517241,0.532608695652174,0.136212624584718,0.290826545600214,0.645303867403315,0.508474576271186,0.869158878504673,0.837587006960557,0.754652161465789,0.847457627118644,0.544280442804428,0.569965870307167,0.340817501439263,0.213826366559486,0.941619585687382,0.538961038961039,0.490384615384615,0.72972972972973,0.795977011494253,0.846753246753247,0.48989898989899,0.493606138107417,0.871859296482412,0.604432757325319,0.695683979517191,0.385044642857143,0.620253164556962,0.708245243128964,0.00857142857142857,0.0434782608695652,0.0424581005586592,0.47887323943662,0.72680412371134,0.566308243727599,0.577464788732394,0.535864978902954,0.582978723404255,0.770642201834862,0.507964601769912,0.608333333333333,0.509551927752692,0.518072289156627,0.474690663667042,0.46969696969697,0.473298429319372,0.47069943289225,0.473354231974922,0.61057506754149,0.642228739002933,0.863849765258216,0.268948655256724,0.693548387096774,0.595530726256983,0.209032258064516,0.556650246305419,0.791845493562232,0.354591836734694,0.123052959501558,0.403050108932462,0.285714285714286,0.686915887850467,0.533447684391081,0.882430647291942,0.293181818181818,0.34070796460177,0.658653846153846,0.760037348272642,0.216548639582557,0.0671271314483056,0.504065040650406,0.367835281023929,0.320093457943925,0.504545454545455,0.264544456641054,0.355742296918768,0.462363030014293,0.45610278372591,0.367704280155642,0.284294234592445,0.528069093152375,0.597609561752988,0.56490599820949,0.719960278053625,0.774566473988439,0.246969016614279,0.486997635933806,0.780099502487562,0.587537091988131,0.214141414141414,0.235294117647059,0.607032057911065,0.363636363636364,0.880246913580247,0.407657657657658,0.316393442622951,0.502958579881657,0.644927536231884,0.629087779690189,0.679012345679012,0.552717391304348,0.375,0.715976331360947,0.558441558441558,0.558865472983679,0.453114608734205,0.434234234234234,0.427125506072874,0.454545454545455,0.49789029535865,0.470319634703196,0.489224137931034,0.46098104793757,0.430547203848467,0.439349729053772,0.422103861517976,0.11011011011011,0.110352673492605,0.114101184068891,0.110352673492605,0.109321058688147,0.10989010989011,0.112078346028292,0.111856823266219,0.113856068743287,0.109447004608295,0.112903225806452,0.109321058688147,0.111361079865017,0.113856068743287,0.113856068743287,0.113856068743287,0.11195652173913,0.114224137931034,0.113978494623656,0.109195402298851,0.113856068743287,0.114101184068891,0.113856068743287,0.113978494623656,0.114101184068891,0.110778443113772,0.113978494623656,0.114101184068891,0.109195402298851,0.109195402298851,0.113146551724138,0.109321058688147,0.113856068743287,0.113856068743287,0.109195402298851,0.114101184068891,0.113856068743287,0.111361079865017,0.113856068743287,0.110478359908884,0.113856068743287,0.114101184068891,0.113856068743287,0.114101184068891,0.109321058688147,0.109321058688147,0.114101184068891,0.111982082866741,0.112200435729847,0.109321058688147,0.113978494623656,0.113856068743287,0.113856068743287,0.112078346028292,0.112078346028292,0.113856068743287,0.114101184068891,0.109321058688147,0.109780439121756,0.109070034443169,0.113856068743287,0.109321058688147,0.114224137931034,0.404227212681638,0.397534668721109,0.411927877947295,0.398148148148148,0.405013192612137,0.407042253521127,0.402674591381872,0.411927877947295,0.411111111111111,0.40210843373494,0.411111111111111,0.411682892906815,0.411682892906815,0.405367231638418,0.411682892906815,0.411111111111111,0.411682892906815,0.410041841004184,0.411111111111111,0.411111111111111,0.411111111111111,0.404227212681638,0.411682892906815,0.410041841004184,0.391849529780564,0.411111111111111,0.411111111111111,0.411111111111111,0.391849529780564,0.411111111111111,0.411111111111111,0.40210843373494,0.411111111111111,0.397832817337461,0.411111111111111,0.411111111111111,0.41029207232267,0.411111111111111,0.391849529780564,0.410863509749304,0.401188707280832,0.406779661016949,0.411111111111111,0.411111111111111,0.411682892906815,0.406205923836389,0.405367231638418,0.411111111111111,0.411111111111111,0.391849529780564,0.403693931398417,0.411111111111111,0.411436541143654,0.556756756756757,0.491025641025641,0.551724137931034,0.532950191570881,0.552824493316085,0.429787234042553,0.463483146067416,0.278290993071594,0.615384615384615,0.56875,0.430724637681159,0.467661691542289,0.580786026200873,0.491176470588235,0.240837696335079,0.806060606060606,0.566739012479653,0.517498731975944,0.577181208053691,0.424050632911392,0.491478581298941,0.410361842105263,0.471074380165289,0.398797595190381,0.59748427672956,0.665594855305466,0.441904761904762,0.660049627791563,0.48046875,0.767584097859327,0.84160756501182,0.553400127904498,0.542582417582418,0.549428379287155,0.620967741935484,0.59622641509434,0.54927709245258,0.611111111111111,0.573719376391982,0.531955606582472,0.572552447552448,0.566064981949459,0.536764705882353,0.515449438202247,0.565022421524664,0.508038585209003,0.631808278867102,0.515553522415371,0.847290640394089,0.560740144810941,0.617852161785216,0.725029940119761,0.409506398537477,0.62962962962963,0.616216216216216,0.803380281690141,0.276849642004773,0.535654199559985,0.731958762886598,0.555294117647059,0.46189917936694,0.53321627158326,0.529254370317517,0.46952736318408,0.426400759734093,0.849740932642487,0.601910828025478,0.572999725048117,0.624778761061947,0.581395348837209,0.204055766793409,0.437837837837838,0.44145509662751,0.73030303030303,0.335384615384615,0.554096310193871,0.712933753943218,0.680570801317234,0.549382716049383,0.533878504672897,0.605504587155963,0.591743119266055,0.628571428571429,0.914124293785311,0.595300261096606,0.709090909090909,0.543391188251001,0.541619585687382,0.5836376917458,0.751366120218579,0.508896797153025,0.71875,0.390243902439024,0.332043343653251,0.738396624472574,0.465256797583082,0.546218487394958,0.251497005988024,0.48048048048048,0.520914668153932,0.50635593220339,0.533617929562433,0.536370597243492,0.359039937045052,0.204739960500329,0.472049689440994,0.557925828683951,0.568690095846645,0.533434650455927,0.434915773353752,0.643956043956044,0.513106796116505,0.885714285714286,0.674509803921569,0.725845410628019,0.318108974358974,0.584967320261438,0.317982456140351,0.487619808306709,0.385688568856886,0.242886884108258,0.700653594771242,0.44126260982753,0.585127996749289,0.422429906542056,0.619515885022693,0.525988700564972,0.464749536178108,0.385232744783307,0.337662337662338,0.403053435114504,0.60458452722063,0.609243697478992,0.476642335766423,0.49963924963925,0.57679180887372,0.592964824120603,0.232843137254902,0.477334789732387,0.402640264026403,0.490452261306533,0.747093023255814,0.590909090909091,0.646766169154229,0.450402144772118,0.436507936507937,0.461538461538462,0.644508670520231,0.591801878736123,0.512902952872493,0.521628498727735,0.85146804835924,0.40650406504065,0.605290456431535,0.47804139323574,0.506987951807229,0.495718363463368,0.466480446927374,0.433566433566434,0.433908045977011,0.436515467830708,0.414448669201521,0.293333333333333,0.398786959818044,0.726858877086495,0.395833333333333,0.39041095890411,0.453874538745387,0.497641509433962,0.510682620297839,0.587786259541985,0.349973998959958,0.385593220338983,0.224489795918367,0.679802955665025,0.217726396917148,0.340785498489426,0.442723107135064,0.537142857142857,0.404347826086957,0.44,0.905236907730673,0.476052249637155,0.502351834430856,0.671111111111111,0.582505910165485,0.578493817909329,0.448087431693989,0.340958605664488,0.474097716670759,0.473251028806584,0.678362573099415,0.547085201793722,0.392953929539295,0.688271604938272,0.552715654952077,0.756190476190476,0.688297872340425,0.630141190914672,0.162072767364939,0.376543209876543,0.454285168925367,0.615291262135922,0.562946538556295,0.563584404980608,0.602708803611738,0.521235521235521,0.285294117647059,0.313211845102506,0.55521472392638,0.525073746312684,0.439086294416244,0.523255813953488,0.565011820330969,0.6,0.425726141078838,0.381673306772908,0.437405731523379,0.892068683565004,0.580199539524175,0.492625368731563,0.698005698005698,0.656884875846501,0.4212271973466,0.483315392895587,0.60655737704918,0.428211586901763,0.439252336448598,0.730443974630021,0.543835616438356,0.497720364741641,0.407249466950959,0.563291139240506,0.713917525773196,0.707317073170732,0.820555325321177,0.625525946704067,0.789677419354839,0.759322033898305,0.461111111111111,0.535398230088496,0.674672489082969,0.684625492772667,0.48816029143898,0.54140625,0.431603773584906,0.714946070878274,0.652,0.925795053003534,0.44689378757515,0.512578616352201,0.871393239901072,0.538216560509554,0.605341246290801,0.628440366972477,0.506329113924051,0.612903225806452,0.419354838709677,0.627306273062731,0.427526595744681,0.466666666666667,0.543333333333333,0.177383592017738,0.456410256410256,0.910503418272219,0.382716049382716,0.571428571428571,0.291721419185283,0.644781144781145,0.622406639004149,0.469087340529931,0.484662576687117,0.673590504451039,0.784926470588235,0.0517241379310345,0.685749086479903,0.641949152542373,0.588152327221439,0.460823373173971,0.479674796747967,0.606645230439443,0.537922987164527,0.541573033707865,0.252808988764045,0.335510204081633,0.880398671096346,0.749830278343517,0.407058823529412,0.63961038961039,0.694915254237288,0.564610011641444,0.266483516483516,0.543082622000322,0.377171215880893,0.473208072372999,0.460807600950119,0.789473684210526,0.716814159292035,0.457865168539326,0.295693277310924,0.305585392051557,0.66553480475382],[679,317,217,175,470,369,436,435,705,719,441,3038,342,409,450,478,2600,850,405,690,1226,4009,377,950,943,537,468,679,1224,303,389,310,1078,572,1567,1320,303,1161,596,230,360,495,290,1688,385,612,443,418,368,535,276,888,530,225,1190,454,433,503,693,369,361,1783,2726,266,606,1350,949,214,602,3947,1026,476,2770,1657,1770,1372,1359,1403,1377,705,237,479,2222,307,336,186,986,559,2977,524,2070,540,326,1559,899,435,379,397,631,2662,581,533,6637,204,492,5619,288,225,297,1026,21206,8161,1289,787,1277,7472,522,1002,2000,814,2859,2467,392,472,595,2814,9400,4661,708,266,305,412,660,1621,1851,1905,1441,1391,1250,593,3786,599,1721,504,7210,409,407,331,982,1544,191,1679,973,488,757,455,1373,414,270,571,1426,314,308,3637,238,1435,191,1783,169,284,379,2603,1136,261,693,41451,2806,44240,1689,444,318,432,757,2796,5056,1341,468,217,275,1780,1049,1699,974,179,419,456,350,1067,921,1122,229,352,414,2402,1381,626,2518,472,1397,231,363,412,2239,642,3102,1345,4689,4369,3121,209,814,391,4541,226,1862,1415,464,6904,2795,10872,1613,578,574,1292,342,258,952,574,549,904,988,250,270,699,1311,565,574,4390,491,432,5862,661,862,1060,818,1623,201,1830,1339,565,1262,1143,1663,1957,642,548,543,2728,571,1641,676,1477,2860,280,6345,901,12500,264,10574,362,3658,3728,1461,1153,699,732,239,312,270,199,2174,359,3825,339,3592,1943,339,1652,317,689,159,285,1037,14480,432,1790,2991,691,128,614,15386,799,248,831,224,1076,994,1042,451,727,1543,786,905,378,498,2803,975,464,1873,742,272,300,471,876,835,1362,8004,3569,820,309,1816,347,393,637,388,10046,4476,445,351,1143,1990,1831,910,720,490,346,1746,357,645,234,669,1200,690,151,1070,334,525,844,692,211,851,541,777,220,309,224,520,965,6450,415,596,4149,1552,3259,442,948,1645,1445,833,817,888,270,3823,646,1154,818,440,441,204,413,542,1306,337,2253,1770,243,328,3670,1201,470,781,2723,739,1426,220,1424,1879,199,467,268,601,608,455,1126,1088,356,311,1755,1883,4134,671,3251,2085,316,196,760,196,807,454,224,230,765,482,1032,611,460,1381,681,255,226,220,787,731,226,243,475,1001,772,246,495,7602,728,2909,603,2058,2051,2054,319,1564,602,7489,1810,590,214,431,3493,236,542,293,1737,622,531,154,416,333,348,770,396,391,398,5324,1367,896,1580,473,350,1035,895,710,388,279,639,237,470,218,1130,240,2879,415,889,1056,955,1058,957,2591,341,213,409,186,895,775,203,466,392,642,459,896,428,1166,757,440,226,624,1071,2683,4633,369,3594,428,220,911,357,4198,467,1028,503,1621,2761,1117,1007,173,2227,423,1005,337,495,289,967,242,810,444,7320,338,690,2324,324,5520,232,169,385,6311,4511,555,494,396,237,219,464,1794,1663,2399,751,999,879,929,879,869,1001,919,894,931,868,930,869,889,931,931,931,920,928,930,870,931,929,931,930,929,1002,930,929,870,870,928,869,931,931,870,929,931,889,931,878,931,929,931,929,869,869,929,893,918,869,930,931,931,919,919,931,929,869,1002,871,931,869,928,757,649,721,648,758,710,673,721,720,664,720,719,719,708,719,720,719,717,720,720,720,757,719,717,638,720,720,720,638,720,720,664,720,646,720,720,719,720,638,718,673,708,720,720,719,709,708,720,720,638,758,720,717,1850,780,348,2610,4638,235,356,4330,260,640,1725,402,458,340,191,330,3686,13801,298,474,2171,1216,242,499,636,311,3150,403,256,327,423,4691,728,2974,248,265,7539,180,2245,5226,2288,2770,8024,712,223,311,459,2186,203,3729,717,4175,2188,189,185,1775,419,7727,194,850,853,3417,5606,1608,1053,965,628,14548,565,473,1578,370,2639,330,325,3198,634,1822,4698,856,545,218,770,885,383,1045,1498,2655,1369,366,843,352,410,1292,711,2317,357,334,666,1793,472,5622,5224,5083,1519,322,3047,313,658,653,455,2060,210,255,828,1248,306,456,2504,2222,2882,765,9219,2461,1070,1322,1770,1078,623,308,655,349,476,1370,2772,293,398,816,1831,303,995,344,836,201,373,882,429,346,1171,59095,393,579,369,1928,1981,4150,1051,716,572,348,5269,263,225,1319,659,336,292,271,424,58085,262,9615,236,490,203,519,1655,4583,700,230,200,401,689,1063,450,2115,2669,549,918,8146,729,342,2453,369,324,313,525,940,3258,907,486,5239,824,4059,4899,443,2849,1020,878,1956,1695,394,430,846,235,1205,5020,663,1223,1303,339,351,886,603,929,183,397,214,946,730,1316,938,316,388,246,2413,713,775,295,720,226,458,761,549,1280,424,649,250,283,499,318,1213,314,337,1308,1343,372,310,271,1504,330,300,451,585,1609,486,322,761,594,241,1019,815,337,544,348,821,472,709,753,246,933,857,445,534,2450,602,2946,425,924,236,1718,728,6209,806,1437,421,171,452,356,3808,5586,589]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> \u003c/th>\n      <th>Behavior List\u003c/th>\n      <th>Female Counts\u003c/th>\n      <th>Male Counts\u003c/th>\n      <th>Under This Behavior, Prob. of Female\u003c/th>\n      <th>Under This Behavior, Prob. of Male\u003c/th>\n      <th>Behavior Total\u003c/th>\n    \u003c/tr>\n  \u003c/thead>\n\u003c/table>","options":{"pageLength":10,"autoWidth":true,"columnDefs":[{"className":"dt-right","targets":[2,3,4,5,6]},{"orderable":false,"targets":0}],"order":[],"orderClasses":false,"orderCellsTop":true,"rowCallback":"function(row, data) {\nvar d = parseFloat(data[4]); $(this.api().cell(row, 4).node()).html(isNaN(d) ? '' : (d * 100).toFixed(1) + '%');\nvar d = parseFloat(data[5]); $(this.api().cell(row, 5).node()).html(isNaN(d) ? '' : (d * 100).toFixed(1) + '%');\n}"},"callback":null,"filter":"top","filterHTML":"<tr>\n  <td>\u003c/td>\n  <td data-type=\"character\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\">\u003c/span>\n    \u003c/div>\n  \u003c/td>\n  <td data-type=\"integer\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\">\u003c/span>\n    \u003c/div>\n    <div style=\"display: none; position: absolute; width: 200px;\">\n      <div data-min=\"20\" data-max=\"28785\">\u003c/div>\n      <span style=\"float: left;\">\u003c/span>\n      <span style=\"float: right;\">\u003c/span>\n    \u003c/div>\n  \u003c/td>\n  <td data-type=\"integer\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\">\u003c/span>\n    \u003c/div>\n    <div style=\"display: none; position: absolute; width: 200px;\">\n      <div data-min=\"3\" data-max=\"30310\">\u003c/div>\n      <span style=\"float: left;\">\u003c/span>\n      <span style=\"float: right;\">\u003c/span>\n    \u003c/div>\n  \u003c/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\">\u003c/span>\n    \u003c/div>\n    <div style=\"display: none; position: absolute; width: 200px;\">\n      <div data-min=\"0.0583804143126177\" data-max=\"0.991428571428571\">\u003c/div>\n      <span style=\"float: left;\">\u003c/span>\n      <span style=\"float: right;\">\u003c/span>\n    \u003c/div>\n  \u003c/td>\n  <td data-type=\"number\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\">\u003c/span>\n    \u003c/div>\n    <div style=\"display: none; position: absolute; width: 200px;\">\n      <div data-min=\"0.00857142857142857\" data-max=\"0.941619585687382\">\u003c/div>\n      <span style=\"float: left;\">\u003c/span>\n      <span style=\"float: right;\">\u003c/span>\n    \u003c/div>\n  \u003c/td>\n  <td data-type=\"integer\" style=\"vertical-align: top;\">\n    <div class=\"form-group has-feedback\" style=\"margin-bottom: auto;\">\n      <input type=\"search\" placeholder=\"All\" class=\"form-control\" style=\"width: 100%;\"/>\n      <span class=\"glyphicon glyphicon-remove-circle form-control-feedback\">\u003c/span>\n    \u003c/div>\n    <div style=\"display: none; position: absolute; width: 200px;\">\n      <div data-min=\"128\" data-max=\"59095\">\u003c/div>\n      <span style=\"float: left;\">\u003c/span>\n      <span style=\"float: right;\">\u003c/span>\n    \u003c/div>\n  \u003c/td>\n\u003c/tr>"},"evals":["options.rowCallback"],"jsHooks":[]}</script></p>
+
+</article></slide><slide class=''><hgroup><h2>Extract Important Variables</h2></hgroup><article  id="extract-important-variables-1">
+
+<p>從EDA結果發現：</p>
+
+<ul>
+<li>並非每個行為都可以區分男女</li>
+<li>有些行為可以顯著的區分男女，但有做此行為的使用者不多 (強、但不多)</li>
+<li>有些行為區分男女效果沒有上者強，但量很多（多、但不強）</li>
+</ul>
+
+<p><br/>EDA可以幫助我們<strong>挑選變數去建立模型</strong>(Extract Important Variables)</p>
+
+</article></slide><slide class=''><hgroup><h2>Some Suggestions for Dimension Reduction</h2></hgroup><article  id="some-suggestions-for-dimension-reduction">
+
+<br/><br/>
+
+<div class="centered">
+<p><strong>模型僅剃除共線性的變數: 1000 -&gt; 926</strong></p></div>
+
+</article></slide><slide class='segue dark nobackground'><hgroup class = 'auto-fadein'><h2>模型建立</h2></hgroup><article >
+
+</article></slide><slide class=''><hgroup><h2>模型建立</h2></hgroup><article  id="-1">
+
+<p>了解資料型態：</p>
+
+<ul>
+<li>Var1 ~ Var926 : Categorical</li>
+<li>Response Variable : Categorical</li>
+</ul>
+
+<p>模型選擇：</p>
+
+<ul>
+<li>*Naive Bayes</li>
+<li>*Logistic Regression</li>
+<li>LDA</li>
+<li>QDA</li>
+<li>Random Forest</li>
+</ul>
+
+<p>僅比較Logistic Regression &amp; NB(Naive Bayes)</p>
+
+</article></slide><slide class=''><hgroup><h2>Logit Regression</h2></hgroup><article  id="logit-regression">
+
+<ul>
+<li>好處：係數解釋</li>
+</ul>
+
+<div align="center">
+<p><img src="2016_Gender_Report_Plot/lr.png" width=800 height=400></p></div>
+
+<p><a href='http://apansharing.blogspot.tw/2011/06/explaining-logistic-regression.html' title=''>參考文章</a></p>
+
+</article></slide><slide class=''><hgroup><h2>Naive Bayes</h2></hgroup><article  id="naive-bayes">
+
+<ul>
+<li>好處：計算量較少</li>
+<li>假設：Independent variables</li>
+</ul>
+
+<div align="center">
+<p><img src="2016_Gender_Report_Plot/nb.png" width=800 height=400></p></div>
+
+</article></slide><slide class='segue dark nobackground'><hgroup class = 'auto-fadein'><h2>模型評估</h2></hgroup><article >
+
+</article></slide><slide class=''><hgroup><h2>分類模型的評估</h2></hgroup><article >
+
+<p>分類模型在意的是到底<strong>準不準</strong>？<br/><br/>評估預測模型指標大多是：</p>
+
+<ul>
+<li>ACC(Accuracy Rate)</li>
+<li>ROC Curve &amp; AUC 值</li>
+<li>Precision</li>
+<li>Recall</li>
+</ul>
+
+<p><a href='http://bryannotes.blogspot.tw/2015/06/precisionrecall.html' title=''>參考文章</a></p>
+
+</article></slide><slide class=''><hgroup><h2>ROC &amp; AUC</h2></hgroup><article  id="roc-auc">
+
+<p><strong>ROC Curve 為判斷預測模型效果的指標之一 </strong></p>
+
+<p>其中透過AUC的值可以判斷預測模型好壞：</p>
+
+<p>根據AUC一般定義：</p>
+
+<ul>
+<li>AUC=0.5 (no discrimination 無鑑別力)</li>
+<li>0.7≦AUC≦0.8 (acceptable discrimination 可接受的鑑別力)</li>
+<li>0.8≦AUC≦0.9 (excellent discrimination 優良的鑑別力)</li>
+<li>0.9≦AUC≦1.0 (outstanding discrimination 極佳的鑑別力)</li>
+</ul>
+
+</article></slide><slide class=''><hgroup><h2>ACC</h2></hgroup><article  id="acc">
+
+<p>Accuracy Rate = 被模型正確分類的User個數 / User總數<br/>視作<strong>整體</strong>被分類正確的比例。<br/><br/>但若是我們今天關心的只是，我們預測為女生且真的是女性的機率(如：想投放彩妝商品廣告給女性)，用Accuracy Rate會有問題<br/><br/>被模型正確分類的User = 被模型正確分類的男性User + 被模型正確分類的女性User<br/>可能Accuracy Rate很高的情況下，但被模型正確分類的女性User為0。<br/><br/>因此，需要另外一個指標，Precision Rate。</p>
+
+</article></slide><slide class=''><hgroup><h2>Precision Rate vs. Recall Rate</h2></hgroup><article  id="precision-rate-vs.-recall-rate">
+
+<div class="centered">
+<p><strong>[準確度] 與 [量] 的 Trade-off</strong><br/> <strong>是否要犧牲準確度換取更多的量？</strong></p></div>
+
+<ul>
+<li>Model Output為機率值 -&gt; 門檻值(Cut Point) -&gt; 分類</li>
+<li>門檻值設定的越高 -&gt; 找出相對是女性的機率較高的一群 -&gt; 數量少 -&gt; Precision高</li>
+<li>門檻值設定的越低 -&gt; 找出相對是女性的機率較不高的一群 -&gt; 數量高 -&gt; Precision低</li>
+</ul>
+
+<div align="center">
+<p><img src="2016_Gender_Report_Plot/Precision-Recall-graph.png" width=400 height=250></p></div>
+
+</article></slide><slide class=''><hgroup><h2>模型評估 - AUC</h2></hgroup><article  id="---auc">
+
+<br/><br/>
+
+<div class="centered">
+<p><strong>Logistic : 0.913 &gt; Naive Bayes : 0.86</strong><br/><strong>Logistic 比 Naive Bayes 準確 </strong></p></div>
+
+</article></slide><slide class=''><hgroup><h2>模型評估 - ACC &amp; Precision</h2></hgroup><article  id="---acc-precision">
+
+<br/><br/>
+
+<div class="centered">
+<p><strong>門檻值 = 0.5</strong><br/><strong>ACC (Logistic Reg.) = 81.5%</strong><br/><strong>ACC (Naive Bayes) = 75.5%</strong><br/><strong>Precision (Logistic Reg.) = 84.1%</strong><br/><strong>Precision (Naive Bayes) = 85.5%</strong></p></div>
+
+</article></slide><slide class=''><hgroup><h2>結論與建議</h2></hgroup><article >
+
+<ul>
+<li>Naive Bayes 優點
+
+<ul>
+<li>計算相較快</li>
+</ul></li>
+<li>Logistic Reg
+
+<ul>
+<li>模型準確度較高</li>
+<li>係數可以解釋</li>
+</ul></li>
+<li>Testing 的 AUC 僅下降 <strong>0.01</strong></li>
+</ul></article></slide>
+
+
+  <slide class="backdrop"></slide>
+
+</slides>
+
+<script src="2016_Bayes_Report_files/ioslides-13.5.1/js/modernizr.custom.45394.js"></script>
+<script src="2016_Bayes_Report_files/ioslides-13.5.1/js/prettify/prettify.js"></script>
+<script src="2016_Bayes_Report_files/ioslides-13.5.1/js/prettify/lang-r.js"></script>
+<script src="2016_Bayes_Report_files/ioslides-13.5.1/js/prettify/lang-yaml.js"></script>
+<script src="2016_Bayes_Report_files/ioslides-13.5.1/js/hammer.js"></script>
+<script src="2016_Bayes_Report_files/ioslides-13.5.1/js/slide-controller.js"></script>
+<script src="2016_Bayes_Report_files/ioslides-13.5.1/js/slide-deck.js"></script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "2016_Bayes_Report_files/mathjax-local/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+<!-- map slide visiblity events into shiny -->
+<script>
+  (function() {
+    if (window.jQuery) {
+       window.jQuery(document).on('slideleave', function(e) {
+         window.jQuery(e.target).trigger('hidden');
+      });
+       window.jQuery(document).on('slideenter', function(e) {
+         window.jQuery(e.target).trigger('shown');
+      });
+    }
+  })();
+</script>
+
+</body>
+</html>
